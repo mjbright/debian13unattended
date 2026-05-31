@@ -1,3 +1,6 @@
+# Don't put preseed.cfg.private, or other private files, out there ...
+*.private
+
 # Output directory for generated ISOs
 output/
 
