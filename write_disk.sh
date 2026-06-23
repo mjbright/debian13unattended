@@ -4,6 +4,7 @@ DISK=/dev/sdb
 
 
 ISO_FILE=~/debian-trixie-iso/debian-trixie-unattended.iso
+ls -altr  $ISO_FILE
 ls -altrh $ISO_FILE
 
 HOST=$(hostname)
