@@ -2,21 +2,43 @@
 
 DISK=/dev/sdb
 
-sudo fdisk -l $DISK
 
-echo; echo "-- WARNING: about to overwrite disk $DISK:"
-read -p "Press <enter> to continue"
+ISO_FILE=~/debian-trixie-iso/debian-trixie-unattended.iso
+ls -altrh $ISO_FILE
 
-IF=~/debian-trixie-iso/debian-trixie-unattended.iso
-ls -altr $IF
+HOST=$(hostname)
 
-case $(hostname) in
-    air) echo "Use rufus or other to write iso to USB key";;
+WRITE_DISK() {
+    read -p "DANGER: type 'yes' to write to '$DISK' ... [no] " DUMMY
+    [ "${DUMMY}" != "yes" ] && exit
 
-      *) sudo ~/scripts/time.py dd ibs=1k if=$IF of=$DISK
-         # sudo dd ibs=1k if=~/debian-trixie-iso/debian-trixie-unattended.iso of=/dev/sdb
-	 ;;
+    DD_CMD="dd ibs=1k if=$ISO_FILE of=$DISK status=progress"
+
+    echo; echo "-- WARNING: about to overwrite disk $DISK:"
+    echo "-- CMD='$DD_CMD'"
+    read -p "Press <enter> to continue"
+
+    sudo ~/scripts/time.py $DD_CMD
+    # sudo dd ibs=1k if=~/debian-trixie-iso/debian-trixie-unattended.iso of=/dev/sdb
+}
+
+MACOS_DISK_LIST() {
+    diskutil list | grep -A 3  -E "^/dev/.* \(external, physical):"
+}
+
+case $HOST in
+    air) #echo "Use rufus or other to write iso to USB key";;
+        echo "[air] HOST='$HOST'"
+        MACOS_DISK_LIST
+
+	DISK=/dev/disk8
+        WRITE_DISK
+	;;
+
+      *)
+        echo "[*] HOST='$HOST'"
+        sudo fdisk -l $DISK
+        WRITE_DISK
+	;;
 esac
-
-
 
