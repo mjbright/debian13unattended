@@ -13,7 +13,9 @@ WRITE_DISK() {
     read -p "DANGER: type 'yes' to write to '$DISK' ... [no] " DUMMY
     [ "${DUMMY}" != "yes" ] && exit
 
-    DD_CMD="dd ibs=1k if=$ISO_FILE of=$DISK status=progress"
+    #DD_CMD="dd ibs=1k if=$ISO_FILE of=$DISK status=progress"
+    # sudo dd if=output/debian-trixie-unattended.iso of=/dev/sdX bs=4M status=progress
+    DD_CMD="dd bs=4M if=$ISO_FILE of=$DISK status=progress"
 
     echo; echo "-- WARNING: about to overwrite disk $DISK:"
     echo "-- CMD='$DD_CMD'"
