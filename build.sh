@@ -8,8 +8,8 @@ BUILD_ON_AMD64() {
 BUILD_ON_ARM64() {
     docker buildx create --name mybuilder --use
 
-    # Make "buildx" the default
-    docker buildx install
+    # UNNEEDED NOW: Make "buildx" the default
+    #docker buildx install
 
     # Build for multiple platforms
     #docker build --platform linux/amd64,linux/arm64 -t $TAG .
