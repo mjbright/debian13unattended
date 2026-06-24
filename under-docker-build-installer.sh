@@ -4,9 +4,13 @@ set -e
 
 set -x
 
-TIMEOUT=1    # Short Menu
-TIMEOUT=10   # Long Menu
-TIMEOUT=0    # No Menu -> boot directly to unattended install
+# TIMEOUT_DSECS => 10th of seconds:
+TIMEOUT_DSECS=1    # Short Menu
+TIMEOUT_DSECS=10   # Long Menu
+TIMEOUT_DSECS=0    # No Menu -> boot directly to unattended install
+
+TIMEOUT_ISOLINUX=$TIMEOUT_DSECS
+let TIMEOUT_GRUB=10*TIMEOUT_DSECS
 
 # Set timeout to 1 second (10 deciseconds) for automatic boot
 ## Initial version using genisoimage & isobybrid
@@ -96,9 +100,9 @@ label auto
 EOF
 wc -l "$WORK_DIR/isolinux/txt.cfg"
 
-echo "Updating main isolinux.cfg to set default(auto) & timeout($TIMEOUT)"
+echo "Updating main isolinux.cfg to set default(auto) & timeout($TIMEOUT_ISOLINUX 1/10th secs)"
 # Set timeout to 1 second (10 deciseconds) for automatic boot
-sed -i "s/timeout 0/timeout $TIMEOUT/" "$WORK_DIR/isolinux/isolinux.cfg"
+sed -i "s/timeout 0/timeout $TIMEOUT_ISOLINUX/" "$WORK_DIR/isolinux/isolinux.cfg"
 # Set the default to auto if not already set
 if ! grep -q "^default " "$WORK_DIR/isolinux/isolinux.cfg"; then
     sed -i '1i default auto' "$WORK_DIR/isolinux/isolinux.cfg"
@@ -117,7 +121,7 @@ GRUB_CFG=$WORK_DIR/boot/grub/grub.cfg
 
 cat >$GRUB_CFG <<EOF
 set default="unattended"
-set timeout=$TIMEOUT
+set timeout=$TIMEOUT_GRUB
 
 menuentry "Unattended Install" --id unattended {
     linux /install.amd/vmlinuz auto=true preseed/file=/cdrom/preseed.cfg ---
