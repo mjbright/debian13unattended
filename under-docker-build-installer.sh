@@ -4,13 +4,16 @@ set -e
 
 set -x
 
-# TIMEOUT_DSECS => 10th of seconds:
-TIMEOUT_DSECS=1    # Short Menu
-TIMEOUT_DSECS=10   # Long Menu
-TIMEOUT_DSECS=0    # No Menu -> boot directly to unattended install
+# TIMEOUT_SECS => seconds:
+TIMEOUT_SECS=1    # Short Menu
+TIMEOUT_SECS=10   # Long Menu
+TIMEOUT_SECS=0    # No Menu -> boot directly to unattended install
 
-TIMEOUT_ISOLINUX=$TIMEOUT_DSECS
-let TIMEOUT_GRUB=10*TIMEOUT_DSECS
+# ALLOW 1 second delay: (possibility to interrupt):
+TIMEOUT_SECS=1
+
+let TIMEOUT_ISOLINUX=10*TIMEOUT_SECS
+let TIMEOUT_GRUB=TIMEOUT_SECS
 
 # Set timeout to 1 second (10 deciseconds) for automatic boot
 ## Initial version using genisoimage & isobybrid
