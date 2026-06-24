@@ -1,6 +1,15 @@
 #!/bin/bash
 set -e
 
+## Initial version using genisoimage & isobybrid
+## BUT this will produce an (UEFI) unbootable USB drive
+## - ISO is bootable by qemu (will use legacy BIOS)
+## - h/w USB is not bootable (because although UEFI files present, only a single ElTorrito entry is present for BIOS, not UEFI)
+##
+## See Deepseek here:
+## - https://chat.deepseek.com/a/chat/s/0398efd6-7acd-4b59-b612-8667dc380b0d
+
+
 echo "===================================="
 echo "Debian Trixie Unattended Installer"
 echo "===================================="
@@ -93,4 +102,19 @@ if [ -d "/output" ]; then
     echo "ISO copied to /output/"
 fi
 
-echo "Done!"
+echo "ISO creation Done!"
+
+# Checks proposed by DeepSeek:
+#
+echo; echo "Performing checks on $OUTPUT_ISO:"
+apt-get update
+apt-get install -y fdisk genisoimage
+echo; echo "-- Check if isohybrid added a partition table"
+fdisk -l $OUTPUT_ISO
+
+echo; echo "-- Check the ISO’s boot catalog (look for UEFI entries)"
+isoinfo -d -i $OUTPUT_ISO
+
+echo; echo "-- List the contents of the EFI directory (should exist for UEFI)"
+isoinfo -f -i $OUTPUT_ISO | grep -i efi
+

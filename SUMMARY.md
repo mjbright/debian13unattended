@@ -28,7 +28,7 @@ All requested features have been implemented:
 debian13unattended/
 ├── Dockerfile                    # Docker image for building installer
 ├── preseed.cfg                   # Debian preseed configuration
-├── build-installer.sh            # ISO building script
+├── under-docker-build-installer.sh            # ISO building script
 ├── additional-scripts/           # Custom post-installation scripts
 │   ├── README.md
 │   └── example.sh

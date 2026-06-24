@@ -102,7 +102,7 @@ Common alternatives:
 .
 ├── Dockerfile                 # Docker image definition
 ├── preseed.cfg               # Debian preseed configuration
-├── build-installer.sh        # ISO building script
+├── under-docker-build-installer.sh        # ISO building script
 ├── additional-scripts/       # Custom post-installation scripts
 │   ├── README.md
 │   └── example.sh
@@ -158,7 +158,7 @@ docker run -it --rm --privileged \
 
 Then manually run:
 ```bash
-/build/build-installer.sh
+/build/under-docker-build-installer.sh
 ```
 
 ## Security Notes

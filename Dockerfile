@@ -24,8 +24,8 @@ COPY preseed.cfg.private /build/preseed.cfg
 COPY additional-scripts/ /build/additional-scripts/
 
 # Copy build script
-COPY build-installer.sh /build/build-installer.sh
-RUN chmod +x /build/build-installer.sh
+COPY under-docker-build-installer.sh /build/under-docker-build-installer.sh
+RUN chmod +x /build/under-docker-build-installer.sh
 
 # Default command
-CMD ["/build/build-installer.sh"]
+CMD ["/build/under-docker-build-installer.sh"]

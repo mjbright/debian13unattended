@@ -15,7 +15,7 @@ This checks that all required preseed settings are present.
 ### 2. Check File Permissions
 
 ```bash
-ls -la build-installer.sh additional-scripts/*.sh validate-preseed.sh
+ls -la under-docker-build-installer.sh additional-scripts/*.sh validate-preseed.sh
 ```
 
 All scripts should be executable (have `x` permission).
@@ -155,7 +155,7 @@ docker run --rm --privileged -v $(pwd)/output:/output debian-trixie-installer
 
 ### ISO download very slow
 
-**Solution**: The first build downloads ~400MB. Use a mirror closer to you by editing `build-installer.sh`:
+**Solution**: The first build downloads ~400MB. Use a mirror closer to you by editing `under-docker-build-installer.sh`:
 ```bash
 ISO_URL="https://YOUR-CLOSER-MIRROR/debian-testing-amd64-netinst.iso"
 ```
@@ -185,7 +185,7 @@ Total first-time run: ~20-30 minutes
 
 ### Enable verbose output
 
-Edit `build-installer.sh` and add at the top:
+Edit `under-docker-build-installer.sh` and add at the top:
 ```bash
 set -x  # Enable debug mode
 ```
@@ -204,7 +204,7 @@ docker run -it --rm --privileged \
   debian-trixie-installer /bin/bash
 
 # Then manually run:
-/build/build-installer.sh
+/build/under-docker-build-installer.sh
 ```
 
 ## Continuous Integration
