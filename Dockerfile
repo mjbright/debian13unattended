@@ -32,4 +32,4 @@ COPY preseed-late-command.sh /build/preseed-late-command.sh
 RUN chmod +x /build/build-installer.sh
 
 # Default command
-CMD ["/build/docker-scripts/build-installer.sh"]
+CMD ["/build/build-installer.sh"]
