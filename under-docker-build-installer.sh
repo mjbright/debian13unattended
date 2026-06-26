@@ -44,7 +44,7 @@ echo
 echo "[$(date)] Downloading Debian netinst ISO..."
 BEFORE=$SECONDS
 
-# Use /output is mounted, download iso to /output/initial unless iso already present there:
+# Use /output if mounted, download iso to /output/initial unless iso already present there:
 WGET_DIR="/build"
 if [ -d "/output" ]; then
     mkdir -p "/output/initial"
