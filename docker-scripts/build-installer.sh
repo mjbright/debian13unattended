@@ -84,6 +84,9 @@ chmod -R +w "$WORK_DIR"
 echo "Copying preseed configuration..."
 cp /build/preseed.cfg "$WORK_DIR/preseed.cfg"
 
+echo "Copying preseed-late-command.sh..."
+cp /build/preseed-late-command.sh "$WORK_DIR/preseed-late-command.sh"
+
 echo "Copying additional scripts..."
 mkdir -p "$WORK_DIR/additional-scripts"
 if [ -d "/build/additional-scripts" ] && [ "$(ls -A /build/additional-scripts)" ]; then

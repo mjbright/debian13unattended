@@ -1,5 +1,6 @@
 # Don't put preseed.cfg.private, or other private files, out there ...
 *.private
+TODO.md
 
 BACKUPS/
 
