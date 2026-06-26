@@ -33,19 +33,19 @@ ABOUT_TO "About to rebuild ISO Image" && {
     $CMD || die "build_iso_image.sh failed"
 }
 
-ABOUT_TO "About to check ISO is bootable [UEFI mode] ['s' to skip] ... " && {
+ABOUT_TO "About to check ISO is bootable [UEFI mode] ... " && {
     CMD="$SCRIPT_DIR/check_image_bootable.sh -uefi-iso"
     echo "-- $CMD"
     $CMD || die "check_image_bootable.sh -uefi-iso failed"
 }
 
-ABOUT_TO "About to write ISO to USB drive ['s' to skip] ... " && {
+ABOUT_TO "About to write ISO to USB drive ... " && {
     CMD="$SCRIPT_DIR/write_iso_image_to_disk.sh"
     echo "-- $CMD"
     $CMD || die "write_iso_image.sh failed"
 }
 
-ABOUT_TO "About to check USB drive is bootable [UEFI mode] ['s' to skip] ... " && {
+ABOUT_TO "About to check USB drive is bootable [UEFI mode] ... " && {
     CMD="$SCRIPT_DIR/check_image_bootable.sh -uefi-usb"
     echo "-- $CMD"
     $CMD || die "check_image_bootable.sh -uefi-usb failed"
