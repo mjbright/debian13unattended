@@ -71,7 +71,7 @@ ls -altrh "$WGET_DIR/$ISO_NAME"
 echo "Mounting ISO..."
 mount -o loop "$WGET_DIR/$ISO_NAME" "$MOUNT_DIR"
 
-echo "Copying ISO contents..."
+echo "Copying BASE ISO ($ISO_NAME) contents..."
 set -x; rsync -av "$MOUNT_DIR/" "$WORK_DIR/" >/tmp/rsync.log 2>&1; set +x
 wc -l /tmp/rsync.log
 
@@ -86,11 +86,17 @@ cp /build/preseed.cfg "$WORK_DIR/preseed.cfg"
 
 echo "Copying preseed-late-command.sh..."
 cp /build/preseed-late-command.sh "$WORK_DIR/preseed-late-command.sh"
+cp /build/docker.build.date.log   "$WORK_DIR/docker.build.date.log"
+date                            > "$WORK_DIR/iso.build.date.log"
+[ -f "/output/.build" ] && cp -a "/output/.build" "$WORK_DIR/.build"
 
-echo "Copying additional scripts..."
+echo "Copying additional scripts & files ..."
 mkdir -p "$WORK_DIR/additional-scripts"
 if [ -d "/build/additional-scripts" ] && [ "$(ls -A /build/additional-scripts)" ]; then
-    cp -r /build/additional-scripts/* "$WORK_DIR/additional-scripts/"
+    set -x; cp -r /build/additional-scripts/* "$WORK_DIR/additional-scripts/"; set +x
+fi
+if [ -d "/build/additional-files" ] && [ "$(ls -A /build/additional-files)" ]; then
+    set -x; rsync -av /build/additional-files/   "$WORK_DIR/additional-files/"; set +x
 fi
 
 echo "Modifying isolinux configuration for auto-install..."
@@ -125,11 +131,13 @@ set -x; find $WORK_DIR/ -name grub.cfg; set +x
 #GRUB_CFG=$WORK_DIR/EFI/BOOT/grub.cfg <<EOF
 GRUB_CFG=$WORK_DIR/boot/grub/grub.cfg
 
+GRUB_MENUTITLE="Debian Trixie (13) Unattended Install      [$(date +'%F    %T')]"
+
 cat >$GRUB_CFG <<EOF
 set default="unattended"
 set timeout=$TIMEOUT_GRUB
 
-menuentry "Unattended Install" --id unattended {
+menuentry "$GRUB_MENUTITLE" --id unattended {
     linux /install.amd/vmlinuz auto=true preseed/file=/cdrom/preseed.cfg ---
     initrd /install.amd/initrd.gz
 }
@@ -194,6 +202,16 @@ fdisk -l $OUTPUT_ISO
 echo; echo "-- Check the ISO’s boot catalog (look for UEFI entries)"
 isoinfo -d -i $OUTPUT_ISO
 
+# REMEMBER THAT THERE ARE in DOS-like 8+3;1, upper-case format !!
 echo; echo "-- List the contents of the EFI directory (should exist for UEFI)"
 isoinfo -f -i $OUTPUT_ISO | grep -i efi
+# isoinfo -f -i $OUTPUT_ISO > /output/iso.content.list
+# isoinfo -f -i $OUTPUT_ISO -p > /output/iso.content.path.list || true
+isoinfo -f -i $OUTPUT_ISO -R > /output/iso.content.rr.list   || true
+
+# REMEMBER THAT THERE ARE in DOS-like 8+3;1, upper-case format !!
+echo; echo "-- List any build.date.log files:"
+isoinfo -f -i $OUTPUT_ISO -R | grep -i date.log || true
+
+exit 0
 

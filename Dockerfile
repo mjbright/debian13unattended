@@ -15,13 +15,16 @@ RUN apt-get update && apt-get install -y \
 WORKDIR /build
 
 # Create directory for additional scripts
-RUN mkdir -p /build/additional-scripts
+RUN mkdir -p /build/additional-scripts /build/additional-files
+
+RUN date > /build/docker.build.date.log
 
 # Copy preseed configuration
 COPY preseed.cfg.private /build/preseed.cfg
 
 # Copy additional scripts directory
-COPY additional-scripts/ /build/additional-scripts/
+COPY additional-scripts/* /build/additional-scripts/
+COPY additional-files/ /build/additional-files/
 
 # Copy build script
 COPY docker-scripts/build-installer.sh /build/build-installer.sh

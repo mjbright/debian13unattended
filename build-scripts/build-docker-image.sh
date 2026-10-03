@@ -16,14 +16,19 @@ BUILD_ON_ARM64() {
     # Build for multiple platforms
     #docker build --platform linux/amd64,linux/arm64 -t $TAG .
     # Build for AMD64 platform:
+    echo "-- building with caching:"
     set -x; docker build --load --platform linux/amd64 -t $TAG .; set +x
-
+    #echo "-- building without caching:"
+    #set -x; docker build --load --platform linux/amd64 -t $TAG --no-cache .; set +x
+ 
     echo "Resulting CMD in image:"
     docker image inspect debian-trixie-installer   | grep -A2 -i cmd
 
     echo "Resulting files in image:"
     #set -x; docker build --load --platform linux/amd64 -t $TAG --no-cache .; set +x
-    docker run --rm -it debian-trixie-installer find
+    #docker run --rm -it debian-trixie-installer find
+    #docker run --rm -it debian-trixie-installer find / -exec ls -ald {} \; > docker.image.files.list
+    docker run --rm -it debian-trixie-installer find /build/ -exec ls -ald {} \; > docker.image.build.files.list
 }
 
 case $(hostname) in

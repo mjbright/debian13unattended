@@ -1,7 +1,10 @@
+#!/usr/bin/env bash
 
 cd $( dirname $0 )
 SCRIPT_DIR=$PWD
+ISO_DIR=$HOME/debian-trixie-iso
 echo "SCRIPT_DIR='$SCRIPT_DIR'"
+echo "ISO_DIR='$ISO_DIR'"
 
 cd
 pwd
@@ -12,8 +15,13 @@ mkdir -p debian-trixie-iso
 
 die() { echo "$0: die - $*" >&2; exit 1; }
 
+
+BUILD_NO=$( cat $ISO_DIR/.build )
+let BUILD_NO=BUILD_NO+1
+echo $BUILD_NO > $ISO_DIR/.build
+
 {
-    docker run --rm --privileged -v $HOME/debian-trixie-iso:/output debian-trixie-installer
+    docker run --rm --privileged -v $ISO_DIR:/output debian-trixie-installer
     RET=$?
     [ $RET -ne 0 ] && die "[return code=$RET] docker run failed: to build iso image"
     #[ $RET -ne 0 ] && echo "NEVER GET HERE"
@@ -21,8 +29,9 @@ die() { echo "$0: die - $*" >&2; exit 1; }
 
 # Need to check for error message in $LOG, as subprocess created for { block } above due to pipe to tee:
 grep -q "docker run failed: to build iso image" $LOG &&
-    exit 0
+    exit 1
                             #-v $(pwd)/output:/output \
+
 ls -altrh debian-trixie-iso
 echo "LOG written to $LOG"
 

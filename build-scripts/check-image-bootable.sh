@@ -80,10 +80,10 @@ BOOT_UEFI_USB() {
 [ -z "$1" ] && set -- -uefi-iso
 
 case "$1" in
-    -bios-iso) BOOT_BIOS_ISO;;
-    -uefi-iso) BOOT_UEFI_ISO;;
-    -bios-usb) die "TODO: BOOT_BIOS_USB"; BOOT_BIOS_USB;;
-    -uefi-usb) BOOT_UEFI_USB;;
+    -bi|-bios-iso) BOOT_BIOS_ISO;;
+    -i|-uefi-iso) BOOT_UEFI_ISO;;
+    -bu|-bios-usb) die "TODO: BOOT_BIOS_USB"; BOOT_BIOS_USB;;
+    -u|-uefi-usb) BOOT_UEFI_USB;;
 esac
 
 
