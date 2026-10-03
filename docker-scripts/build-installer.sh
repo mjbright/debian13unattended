@@ -2,6 +2,8 @@
 #!/bin/bash
 set -e
 
+VOLID="DEBIANPRE"
+
 set -x
 
 # TIMEOUT_SECS => seconds:
@@ -168,6 +170,7 @@ set -x; wc -l /tmp/genisoimage.log; set +x
 
 # v2: BIOS or UEFI (on physical h/w):
 xorriso -as mkisofs \
+    -volid "$VOLID" \
     -r -J -joliet-long \
     -isohybrid-mbr /usr/lib/ISOLINUX/isohdpfx.bin \
     -partition_offset 16 \

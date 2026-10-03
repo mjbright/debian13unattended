@@ -32,6 +32,7 @@ grep -q "docker run failed: to build iso image" $LOG &&
     exit 1
                             #-v $(pwd)/output:/output \
 
+echo; echo "ls -altrh $PWD/debian-trixie-iso:"
 ls -altrh debian-trixie-iso
 echo "LOG written to $LOG"
 

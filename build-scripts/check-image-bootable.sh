@@ -51,7 +51,9 @@ BOOT_UEFI_ISO() {
     }
 
     # Create empty file:
-    touch /tmp/edk2-x86_64-vars.fd
+    #touch /tmp/edk2-x86_64-vars.fd
+    # Create "empty" file:
+    dd if=/dev/zero of=/tmp/edk2-x86_64-vars.fd bs=1K count=528 2>/dev/null
     set -x; qemu-system-x86_64 -m $MEM -cdrom $TMP_ISO_FILE -boot d -drive if=pflash,format=raw,file=/opt/homebrew/opt/qemu/share/qemu/edk2-x86_64-code.fd,readonly=on -drive if=pflash,format=raw,file=/tmp/edk2-x86_64-vars.fd
 }
 

@@ -2,6 +2,16 @@
 *.private
 TODO.md
 
+.build
+
+docker.image.build.files.list
+fbxosctrl_certificates.txt
+preseed.cfg.0
+preseed.cfg.enp1s0
+preseed.cfg.net.auto
+preseed_late_command.sh.x
+
+
 BACKUPS/
 
 # Output directory for generated ISOs
