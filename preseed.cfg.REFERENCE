@@ -1,14 +1,22 @@
 #### Debian Trixie Unattended Installation Preseed Configuration
+#
+# Resources:
+# - https://www.debian.org/releases/stable/armhf/apbs02.en.html
+# - https://debian-facile.org/doc:install:preseed
+# - https://developer.hashicorp.com/packer/guides/automatic-operating-system-installs/preseed_ubuntu
+# - https://unix.stackexchange.com/questions/719803/how-to-add-a-public-ssh-key-using-debian-preseed-file
+# - https://gist.github.com/coderanger/664608
+# - https://forge.apps.education.fr/marius-antoine.monnier/debian-ansible/-/blob/main/ressources/preseed.cfg
 
 ### Localization
 # Locale sets language and country
 d-i debian-installer/locale string en_US.UTF-8
 d-i debian-installer/language string en
-d-i debian-installer/country string CH
+d-i debian-installer/country string FR
 d-i debian-installer/locale string en_US.UTF-8
 
-# Keyboard selection - Swiss French
-d-i keyboard-configuration/xkb-keymap select ch(fr)
+# Keyboard selection - US English
+d-i keyboard-configuration/xkb-keymap select us
 d-i keyboard-configuration/toggle select No toggling
 
 ### Network configuration
@@ -28,8 +36,8 @@ d-i mirror/http/proxy string
 
 ### Account setup
 # Skip creation of a root account (normal user account will be able to use sudo)
-# To enable root account, set this to false
-d-i passwd/root-login boolean true
+# To enable root account, set this to true
+d-i passwd/root-login boolean false
 
 # Root password (both encrypted and in clear text)
 # mkpasswd -m sha-512
@@ -45,7 +53,7 @@ d-i passwd/user-password-again password debian
 
 ### Clock and time zone setup
 d-i clock-setup/utc boolean true
-d-i time/zone string Europe/Zurich
+d-i time/zone string Europe/Paris
 d-i clock-setup/ntp boolean true
 
 ### Partitioning
@@ -94,7 +102,14 @@ d-i finish-install/reboot_in_progress note
 # Configure SSH to allow root login
 d-i preseed/late_command string \
     in-target sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config; \
-    in-target sed -i 's/PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config; \
+    #in-target sed -i 's/PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config; \
+    in-target sed -i 's/PermitRootLogin .*/PermitRootLogin yes/' /etc/ssh/sshd_config; \
     in-target systemctl enable ssh; \
     in-target mkdir -p /root/additional-scripts; \
     cp -r /cdrom/additional-scripts/* /target/root/additional-scripts/ || true
+
+# Disable USB for reboot:
+d-i preseed/late_command string \
+    in-target sh -c 'for dev in /sys/bus/usb/devices/usb*; do echo 0 > "$dev/authorized" 2>/dev/null || true; done'; \
+    in-target sh -c 'for mod in usb_storage uas; do modprobe -r $mod 2>/dev/null || true; done'
+

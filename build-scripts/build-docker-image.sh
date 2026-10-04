@@ -28,7 +28,9 @@ BUILD_ON_ARM64() {
     #set -x; docker build --load --platform linux/amd64 -t $TAG --no-cache .; set +x
     #docker run --rm -it debian-trixie-installer find
     #docker run --rm -it debian-trixie-installer find / -exec ls -ald {} \; > docker.image.files.list
-    docker run --rm -it debian-trixie-installer find /build/ -exec ls -ald {} \; > docker.image.build.files.list
+    #docker run --rm -it debian-trixie-installer find /build/ -exec ls -ald {} \; > docker.image.build.files.list
+    docker run --rm -it debian-trixie-installer find /build/ -exec cksum {} \; > docker.image.build.files.cksum
+    docker run --rm -it debian-trixie-installer find /build/ -name preseed.cfg -exec cksum {} \; > docker.image.build.files.preseed.cfg.cksum
 }
 
 case $(hostname) in
@@ -41,6 +43,7 @@ set -x
 mkdir -p  ~/debian-trixie-iso/
 ls -altrh ~/debian-trixie-iso/
 
-echo
+echo; echo "---- [$(date)] Docker image rebuilt: (should be newer than preseed.cfg)"
+ls -altr preseed.cfg.private
 docker image ls | head -2
 

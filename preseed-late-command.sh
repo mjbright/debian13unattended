@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+DEBUG=0
+DEBUG=1
+
 PUB_KEY='ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILSgp20nvALXpqmIwsE5wFnz2OxNklJ63XspuVU9Mi6S mjb@NUC3'
 echo $PUB_KEY > /root/.ssh/authorized_keys
 
@@ -9,6 +12,10 @@ GW=254
 exec  > /root/$( basename $0 ).log 2>&1
 
 ADMIN_USER=admin66
+
+# Console access only:
+DEBUG_USER=debug66
+DEBUG_MDP=debug66
 
 #set -x
 echo; echo "-- Mounted volumes:"
@@ -23,16 +30,16 @@ echo "BOOT_PART=$BOOT_PART BOOK_DISK=$BOOT_DISK"
 echo; echo "-- Enable ssh:"
 systemctl enable ssh
 
-echo; echo "-- Adding cdrom source:"
-sudo apt-cdrom --no-act add 
-
-#if everything is OK:
-sudo apt-cdrom add 
-
-sudo apt-cdrom ident 
-
-#sudo apt-cdrom -d "/cdrom" -r
-#sudo apt-cdrom --cdrom "/cdrom" -r
+# DISABLED CDROM (causing stalled install under QEMU):
+#    echo; echo "-- Adding cdrom source:"
+#    # dry-run:
+#    sudo apt-cdrom --no-act add 
+#    #if everything is OK:
+#    # can cd contents:
+#    sudo apt-cdrom add 
+#    sudo apt-cdrom ident 
+#    #sudo apt-cdrom -d "/cdrom" -r
+#    #sudo apt-cdrom --cdrom "/cdrom" -r
 
 #touch /root/.here5
 echo; echo "-- Installing some packages:"
@@ -88,10 +95,19 @@ DISABLE_SSH_ROOT_LOGIN() {
 FINAL_COMMON() {
     adduser -gecos 'User ${ADMIN_USER}' ${ADMIN_USER} --disabled-password 2>&1
 
+    # Assigning a long random password, so that account is unlocked for ssh/key-based access:
+    echo "admin66:$(tr -dc 'a-zA-Z0-9' < /dev/urandom | head -c 48)" | sudo chpasswd
+    # Automatically unlocks the account - no need for sudo usermod -U admin66, or for sudo passwd -u admin66
+
     mkdir -p /home/${ADMIN_USER}/.ssh
     echo $PUB_KEY >> /home/${ADMIN_USER}/.ssh/authorized_keys
     chown -R ${ADMIN_USER}:${ADMIN_USER} /home/${ADMIN_USER}/
     echo "$ADMIN_USER ALL=(ALL) NOPASSWD:ALL" | tee /etc/sudoers.d/${ADMIN_USER}
+
+    [ $DEBUG -ne 0 ] && {
+        # Console access only
+        echo "$DEBUG_USER:$DEBUG_MDP" |sudo chpasswd
+    }
 
     # TODO:
     # - disable (ssh) root   login
@@ -126,12 +142,29 @@ CONFIGURE_LENOVO_CARBON() {
     echo $HOST > /etc/hostname
 }
 
-CONFIGURE_NUC5_BEELINK() {
+CONFIGURE_HOST() {
+    HOST=$1; shift
+    DEV=$1; shift
+    IP=$1; shift
+    DESC="$1"; shift
+    [ -z "$DESC" ] && DESC="$HOST"
+
+    echo "[$HOST] Machine identified as $DESC"
+    # FAILS: hostnamectl set-hostname $HOST
+    echo $HOST > /etc/hostname
+
+    CONFIGURE_STATIC_NETWORKING $IP enp1s0
+}
+
+OLD_CONFIGURE_NUC5_BEELINK() {
     HOST=nuc5-beelink
 
     echo "[$HOST] Machine identified as NUC5-Beelink [N100]"
     # FAILS: hostnamectl set-hostname $HOST
     echo $HOST > /etc/hostname
+
+    IP=192.168.1.235
+    CONFIGURE_STATIC_NETWORKING $IP enp1s0
 }
 
 CONFIGURE_PROX3() {
@@ -154,6 +187,9 @@ CONFIGURE_STATIC_NETWORKING() {
     IP=$1; shift
     DEVICE=$1; shift
 
+    [ ! -f /etc/network/interfaces.bak ] &&
+        cp -a /etc/network/interfaces /etc/network/interfaces.bak
+
     sed \
 	-e "s/__IP__/$IP/g" \
 	-e "s/__DEVICE__/$DEVICE/g" \
@@ -161,7 +197,12 @@ CONFIGURE_STATIC_NETWORKING() {
 	-e "s/__GW__/$GW/g" \
         additional-files/root/etc-network-interfaces.template > /etc/network/interfaces
 
-    sudo systemctl restart networking
+    grep -q " $HOST$" /etc/hosts || {
+        echo "# $DESC"
+        echo $IP $HOST
+    } | tee -a /etc/hosts
+
+    systemctl restart networking
 }
 
 die() {
@@ -170,13 +211,34 @@ die() {
 }
 
 case $MAC in
-    8c-16-45-5f-af-e1) CONFIGURE_LENOVO_CARBON;;
 
-    7c-83-34-bb-bc-90) CONFIGURE_NUC5_BEELINK;;
+  # QEMU_MAC=52:54:00:12:34:56
+  52-54-00-12-34-56)
+    CONFIGURE_HOST "qemu-tester" eno1 192.168.1.199 "QEMU Tester"
+    ;;
+
+  8c-16-45-5f-af-e1)
+    # CONFIGURE_LENOVO_CARBON;;
+    CONFIGURE_HOST "lenovo-carbon" enp1s0 192.168.1.236 "Lenovo Carbon X1 [2018]"
+    ;;
+
+  7c-83-34-bb-bc-90)
+    CONFIGURE_HOST "nuc5-beelink" enp1s0 192.168.1.235 "NUC5-Beelink [N100]"
+    ;;
+    # CONFIGURE_NUC5_BEELINK;;
     #MAC='7c-83-34-bb-bc-90' UUID='03000200-0400-0500-0006-000700080009' PRODUCT='MINI_S'
 
-    8c-70-60-4c-3f-bd) CONFIGURE_PROX3;;
-    1c-69-7a-a0-b7-20) CONFIGURE_PROX7;;
+  8c-70-60-4c-3f-bd)
+    # CONFIGURE_PROX3;;
+    CONFIGURE_HOST "prox3" enp1s0 192.168.1.243 "Proxmox 3 (metal fins?)"
+    ;;
+  38-f3-ab-f7-66-b5)
+    CONFIGURE_HOST "prox5" enp1s0 192.168.1.245 "Proxmox 5 (Lenovo Tiny)"
+    ;;
+
+  1c-69-7a-a0-b7-20)
+    CONFIGURE_HOST "prox7" enp1s0 192.168.1.247 "Proxmox 7 ??"
+    # CONFIGURE_PROX7;;
     # ?? xx-xx-xx-xx-xx-xx) CONFIGURE_PROX5;;
 
     *) echo "Unrecognized machine - MAC='$MAC' UUID='$UUID' PRODUCT='$PRODUCT'";;

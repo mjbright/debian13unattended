@@ -3,6 +3,7 @@
 TODO.md
 
 .build
+*.cksum
 
 docker.image.build.files.list
 fbxosctrl_certificates.txt

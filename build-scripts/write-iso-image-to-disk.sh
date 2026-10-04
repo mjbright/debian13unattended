@@ -8,7 +8,26 @@ ls -altrh $ISO_FILE
 
 HOST=$(hostname)
 
+## -- Func: --------------------------------------------------------------------------------
+
 die() { echo "$0: die - $*" >&2; exit 1; }
+
+CHECK_PRESEED() {
+    echo; echo "---- Checking that preseed.cfg in Docker image is the same as local preseed.cfg.private:"
+    cat ./docker.image.build.files.preseed.cfg.cksum
+    DOCKER_PRESEED_CKSUM=$( awk '{ print $1; }' < ./docker.image.build.files.preseed.cfg.cksum)
+    PRIVATE_PRESEED_CKSUM=$( cksum preseed.cfg.private | awk '{ print $1; }' )
+    # 1136337608 5796 /build/preseed.cfg
+    # 1136337608 5796 preseed.cfg.private
+    [ "$DOCKER_PRESEED_CKSUM" != "$PRIVATE_PRESEED_CKSUM" ] && {
+        echo "----"
+        echo "DOCKER_PRESEED_CKSUM=$DOCKER_PRESEED_CKSUM"
+        echo "PRIVATE_PRESEED_CKSUM=$PRIVATE_PRESEED_CKSUM"
+        echo "In Docker image:   $(cat ./docker.image.build.files.preseed.cfg.cksum)"
+        echo "Local preseed.cfg: $(cksum preseed.cfg.private)"
+        read -p "preseed.cfg in Docker image has different cksum - press <Enter> to continue"
+    }
+}
 
 WRITE_DISK() {
     echo; echo "-- Showing Eltorrito entries in iso $ISO_FILE"
@@ -43,14 +62,20 @@ MACOS_DISK_LIST() {
     # diskutil list $DISK | grep -i DEBIANPRE || die "Selected disk does not have DEBIANPRE label"
     DUMMY="no"
     # diskutil list $DISK | grep -i DEBIANPRE ||
-    diskutil info $DISK | grep -i DEBIANPRE ||
-	    read -p "Disk $DISK doesn't have label 'DEBIANPRE' - continue? type 'yes'" DUMMY
-    [ "${DUMMY,,}" != "yes" ] && exit
+    # diskutil info $DISK | grep -i DEBIANPRE ||
+    sudo dd if=/dev/rdisk4 bs=1024 skip=0 count=64  | strings | grep -i debianpre || {
+	read -p "Disk $DISK doesn't have label 'DEBIANPRE' - continue? type 'yes'" DUMMY
+        [ "${DUMMY,,}" != "yes" ] && exit
+    }
 
     echo "[sanity check] Double checking only 1 external,physical disk found:"
     EXT_PHYS_DRIVE_COUNT=$( diskutil list | grep -c '/dev/disk[0-9] .external, physical' )
     [ "$EXT_PHYS_DRIVE_COUNT" != "1" ] && die "Failed to find single candidate drive"
 }
+
+## -- Main: --------------------------------------------------------------------------------
+
+CHECK_PRESEED
 
 case $HOST in
     air) #echo "Use rufus or other to write iso to USB key";;

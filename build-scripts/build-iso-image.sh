@@ -21,6 +21,14 @@ let BUILD_NO=BUILD_NO+1
 echo $BUILD_NO > $ISO_DIR/.build
 
 {
+    echo; echo "---- [$(date)] Before iso creation:"
+    ls -altr $OLDPWD/preseed.cfg.private ~/debian-trixie-iso/debian-trixie-unattended.iso
+    docker image ls | grep debian-trixie-installer
+    echo "----"
+} | tee -a $LOG
+
+
+{
     docker run --rm --privileged -v $ISO_DIR:/output debian-trixie-installer
     RET=$?
     [ $RET -ne 0 ] && die "[return code=$RET] docker run failed: to build iso image"
@@ -34,5 +42,11 @@ grep -q "docker run failed: to build iso image" $LOG &&
 
 echo; echo "ls -altrh $PWD/debian-trixie-iso:"
 ls -altrh debian-trixie-iso
+{
+    echo; echo "---- [$(date)] After  iso creation:"
+    ls -altr $OLDPWD/preseed.cfg.private ~/debian-trixie-iso/debian-trixie-unattended.iso
+    docker image ls | grep debian-trixie-installer
+    echo "----"
+} | tee -a $LOG
 echo "LOG written to $LOG"
 
