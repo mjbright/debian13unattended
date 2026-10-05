@@ -5,16 +5,29 @@
 DEBUG=0
 DEBUG=1
 
-PUB_KEY='ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILSgp20nvALXpqmIwsE5wFnz2OxNklJ63XspuVU9Mi6S mjb@NUC3'
-echo $PUB_KEY > /root/.ssh/authorized_keys
-
 SUBNET=192.168.1
 GW=254
+
+PUB_KEY='ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILSgp20nvALXpqmIwsE5wFnz2OxNklJ63XspuVU9Mi6S mjb@NUC3'
+echo $PUB_KEY >> /root/.ssh/authorized_keys
+
+mkdir -p /home/usb66test/.ssh
+echo $PUB_KEY >> /home/usb66test/.ssh/authorized_keys
+chown -R usb66test /home/usb66test/.ssh
+chmod 755 /home/usb66test/.ssh
+chmod 600 /home/usb66test/.ssh/authorized_keys
 
 LOG=/root/preseed/$( basename $0 ).log
 
 echo "Logging $( basename $0 ) output to $LOG"
 exec  > $LOG 2>&1
+
+echo "[$(date)] [$PWD] [$SHELL] $0 $*"
+cd /root/preseed
+echo "[$(date)] [$PWD] [$SHELL] $0 $*"
+find
+
+set -x
 
 ADMIN_USER=admin66
 
@@ -34,6 +47,7 @@ echo "BOOT_PART=$BOOT_PART BOOK_DISK=$BOOT_DISK"
 
 echo; echo "-- Enable ssh:"
 systemctl enable ssh
+systemctl status ssh
 
 # DISABLED CDROM (causing stalled install under QEMU):
 #    echo; echo "-- Adding cdrom source:"
@@ -48,30 +62,32 @@ systemctl enable ssh
 
 #touch /root/.here5
 echo; echo "-- Installing some packages:"
+CMD="apt-get update"
+echo "---- $CMD"; $CMD
+
 APT_PACKAGES="sudo rsync jq psutils tree python3-venv python3-pip lm-sensors neofetch"
 CMD="apt-get install -y $APT_PACKAGES"
 echo "---- $CMD"
-$CMD > /root/apt-get.install.log 2>&1
-grep "newly installed" /root/apt-get.install.log 2>&1
-
+$CMD > ./apt-get.install.log 2>&1
+grep "newly installed" ./apt-get.install.log 2>&1
 
 #touch /root/.here6
 echo; echo "-- Running extra scripts:"
-for script in /root/additional-scripts/[0-9].*.sh; do
+for script in ./additional-scripts/[0-9].*.sh; do
     echo "---- bash -x $script"
     bash -x $script
-done >/root/additional-scripts.log 2>&1
+done >./additional-scripts.log 2>&1
 
 echo; echo "-- Copying in extra files:"
-ls -al additional-files/etc/update-motd.d/11-motd
+ls   -al additional-files/etc/update-motd.d/11-motd
 chmod +x additional-files/etc/update-motd.d/11-motd
-ls -al additional-files/etc/update-motd.d/11-motd
+ls   -al additional-files/etc/update-motd.d/11-motd
 
-rsync -av /root/additional-files/ /
+rsync -av ./additional-files/ /
 
-#touch /root/.here7
-echo; echo "-- Looking for late_command in /var/log/installer/cdebconf/questions.dat:"
-grep -A20 -i late_command /var/log/installer/cdebconf/questions.dat
+#touch ./.here7
+# echo; echo "-- Looking for late_command in /var/log/installer/cdebconf/questions.dat:"
+# grep -A20 -i late_command /var/log/installer/cdebconf/questions.dat
 
 echo; echo "-- Gathering machine specific information:"
 
@@ -91,7 +107,7 @@ PRODUCT=$(dmidecode -s system-product-name | tr ' ' '_'); \
     head -1 /proc/meminfo
     echo; echo "-- Boot Disk Partitions:"
     fdisk -l $BOOT_DISK
-} > /root/machine.info
+} > ./machine.info
 
 DISABLE_SSH_ROOT_LOGIN() {
    { grep -v PermitRootLogin /etc/ssh/sshd_config; echo "PermitRootLogin no"; } | tee /etc/ssh/sshd_config
@@ -115,6 +131,7 @@ INSTALL_HYPERVISOR_TOOLS() {
 }
 
 FINAL_COMMON() {
+    echo; echo "-- Creating user $ADMIN_USER"
     adduser -gecos 'User ${ADMIN_USER}' ${ADMIN_USER} --disabled-password 2>&1
 
     # Assigning a long random password, so that account is unlocked for ssh/key-based access:
@@ -122,37 +139,46 @@ FINAL_COMMON() {
     # Automatically unlocks the account - no need for sudo usermod -U admin66, or for sudo passwd -u admin66
 
     mkdir -p /home/${ADMIN_USER}/.ssh
+    chmod 755 /home/${ADMIN_USER}/.ssh
     echo $PUB_KEY >> /home/${ADMIN_USER}/.ssh/authorized_keys
+    chmod 600        /home/${ADMIN_USER}/.ssh/authorized_keys
     chown -R ${ADMIN_USER}:${ADMIN_USER} /home/${ADMIN_USER}/
     echo "$ADMIN_USER ALL=(ALL) NOPASSWD:ALL" | tee /etc/sudoers.d/${ADMIN_USER}
 
+    echo; echo "-- Creating user $DEBUG_USER"
+    adduser -gecos 'User ${DEBUG_USER}' ${DEBUG_USER} --disabled-password 2>&1
     [ $DEBUG -ne 0 ] && {
         # Console access only
         echo "$DEBUG_USER:$DEBUG_MDP" |sudo chpasswd
     }
+    mkdir -p /home/${DEBUG_USER}/.ssh
+    chmod 755 /home/${DEBUG_USER}/.ssh
+    echo $PUB_KEY >> /home/${DEBUG_USER}/.ssh/authorized_keys
+    chmod 600        /home/${DEBUG_USER}/.ssh/authorized_keys
+    chown -R ${DEBUG_USER}:${DEBUG_USER} /home/${DEBUG_USER}/
+    echo "$DEBUG_USER ALL=(ALL) NOPASSWD:ALL" | tee /etc/sudoers.d/${DEBUG_USER}
 
     # TODO:
     # - disable (ssh) root   login
     # - disable (ssh) debian login (no passwd entry: safe?)
     #   testing with ssh login for now ...
     
-    DEBIAN_USER=debian
-    mkdir -p /home/${DEBIAN_USER}/.ssh
-    echo $PUB_KEY >> /home/${DEBIAN_USER}/.ssh/authorized_keys
-    chown -R ${DEBIAN_USER}:${DEBIAN_USER} /home/${DEBIAN_USER}/
+    # ? DEBIAN_USER=debian
+    # ? mkdir -p /home/${DEBIAN_USER}/.ssh
+    # ? echo $PUB_KEY >> /home/${DEBIAN_USER}/.ssh/authorized_keys
+    # ? chown -R ${DEBIAN_USER}:${DEBIAN_USER} /home/${DEBIAN_USER}/
 
     DISABLE_SSH_ROOT_LOGIN
     # Disable 'debian' ssh login:
     mv /home/${DEBIAN_USER}/.ssh /home/${DEBIAN_USER}/.ssh.disabled
 
-
-    echo "Careful: can cause issues where packages are updated:"
-    { echo; cat /root/machine.info;
+    # ???? echo; echo "-- Careful: can cause issues where packages are updated:"
+    { echo; cat ./machine.info;
       echo; ip a;
       echo; echo "$(hostname): $(hostname -I)"; echo;
     } | tee -a /etc/issue | tee -a /etc/issue.net
 
-    { echo; cat /root/machine.info;
+    { echo; cat ./machine.info;
       echo; echo "$(hostname): $(hostname -I)"; echo;
     } |tee -a /dev/console
 }
@@ -186,7 +212,7 @@ OLD_CONFIGURE_NUC5_BEELINK() {
     # FAILS: hostnamectl set-hostname $HOST
     echo $HOST > /etc/hostname
 
-    IP=192.168.1.235
+    IP=235
     CONFIGURE_STATIC_NETWORKING $IP enp1s0
 }
 
@@ -237,30 +263,30 @@ case $MAC in
 
   # QEMU_MAC=52:54:00:12:34:56
   52-54-00-12-34-56)
-    CONFIGURE_HOST "qemu-tester" eno1 192.168.1.199 "QEMU Tester"
+    CONFIGURE_HOST "qemu-tester" eno1 199 "QEMU Tester"
     ;;
 
   8c-16-45-5f-af-e1)
     # CONFIGURE_LENOVO_CARBON;;
-    CONFIGURE_HOST "lenovo-carbon" enp1s0 192.168.1.236 "Lenovo Carbon X1 [2018]"
+    CONFIGURE_HOST "lenovo-carbon" enp1s0 236 "Lenovo Carbon X1 [2018]"
     ;;
 
   7c-83-34-bb-bc-90)
-    CONFIGURE_HOST "nuc5-beelink" enp1s0 192.168.1.235 "NUC5-Beelink [N100]"
+    CONFIGURE_HOST "nuc5-beelink" enp1s0 235 "NUC5-Beelink [N100]"
     ;;
     # CONFIGURE_NUC5_BEELINK;;
     #MAC='7c-83-34-bb-bc-90' UUID='03000200-0400-0500-0006-000700080009' PRODUCT='MINI_S'
 
   8c-70-60-4c-3f-bd)
     # CONFIGURE_PROX3;;
-    CONFIGURE_HOST "prox3" enp1s0 192.168.1.243 "Proxmox 3 (metal fins?)"
+    CONFIGURE_HOST "prox3" enp1s0 243 "Proxmox 3 (metal fins?)"
     ;;
   38-f3-ab-f7-66-b5)
-    CONFIGURE_HOST "prox5" enp1s0 192.168.1.245 "Proxmox 5 (Lenovo Tiny)"
+    CONFIGURE_HOST "prox5" enp1s0 245 "Proxmox 5 (Lenovo Tiny)"
     ;;
 
   1c-69-7a-a0-b7-20)
-    CONFIGURE_HOST "prox7" enp1s0 192.168.1.247 "Proxmox 7 ??"
+    CONFIGURE_HOST "prox7" enp1s0 247 "Proxmox 7 ??"
     ;;
     # CONFIGURE_PROX7;;
     # ?? xx-xx-xx-xx-xx-xx) CONFIGURE_PROX5;;
