@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+# All this script runs under in-target - thus on the target environment (but invoked from the installer)
+
 DEBUG=0
 DEBUG=1
 
@@ -9,7 +11,10 @@ echo $PUB_KEY > /root/.ssh/authorized_keys
 SUBNET=192.168.1
 GW=254
 
-exec  > /root/$( basename $0 ).log 2>&1
+LOG=/root/preseed/$( basename $0 ).log
+
+echo "Logging $( basename $0 ) output to $LOG"
+exec  > $LOG 2>&1
 
 ADMIN_USER=admin66
 
@@ -92,6 +97,23 @@ DISABLE_SSH_ROOT_LOGIN() {
    { grep -v PermitRootLogin /etc/ssh/sshd_config; echo "PermitRootLogin no"; } | tee /etc/ssh/sshd_config
 }
 
+INSTALL_HYPERVISOR_TOOLS() {
+    # Detect hypervisor and install the appropriate guest agent
+    VIRT=$(systemd-detect-virt 2>/dev/null || echo "none")
+    echo "Detected virtualization: $VIRT"
+    
+    case "$VIRT" in
+        kvm|qemu) apt-get install -y qemu-guest-agent ;;
+        vmware) apt-get install -y open-vm-tools ;;
+        microsoft) apt-get install -y hyperv-daemons ;;
+        xen) apt-get install -y xe-guest-utilities ;;
+        oracle) apt-get install -y virtualbox-guest-utils ;;
+        *)
+            echo "No hypervisor-specific guest agent required (bare metal or unsupported hypervisor)"
+            ;;
+    esac
+}
+
 FINAL_COMMON() {
     adduser -gecos 'User ${ADMIN_USER}' ${ADMIN_USER} --disabled-password 2>&1
 
@@ -126,6 +148,7 @@ FINAL_COMMON() {
 
     echo "Careful: can cause issues where packages are updated:"
     { echo; cat /root/machine.info;
+      echo; ip a;
       echo; echo "$(hostname): $(hostname -I)"; echo;
     } | tee -a /etc/issue | tee -a /etc/issue.net
 
@@ -238,6 +261,7 @@ case $MAC in
 
   1c-69-7a-a0-b7-20)
     CONFIGURE_HOST "prox7" enp1s0 192.168.1.247 "Proxmox 7 ??"
+    ;;
     # CONFIGURE_PROX7;;
     # ?? xx-xx-xx-xx-xx-xx) CONFIGURE_PROX5;;
 
@@ -245,6 +269,7 @@ case $MAC in
     #*) die "Unrecognized machine - MAC='$MAC' UUID='$UUID' PRODUCT='$PRODUCT'";;
 esac
 
+INSTALL_HYPERVISOR_TOOLS
 FINAL_COMMON
 
 exit 0
