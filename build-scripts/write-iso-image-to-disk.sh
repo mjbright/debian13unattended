@@ -41,13 +41,27 @@ WRITE_DISK() {
 
     #DD_CMD="dd ibs=1k if=$ISO_FILE of=$DISK status=progress"
     # sudo dd if=output/debian-trixie-unattended.iso of=/dev/sdX bs=4M status=progress
-    DD_CMD="dd bs=4M if=$ISO_FILE of=$DISK status=progress"
+    USE_PV=1
+    if [ $USE_PV -ne 0 ]; then
+        DD_CMD="( pv -n $ISO_FILE | sudo dd bs=4M of=$DISK conv=notrunc,noerror ) 2>&1 | dialog --gauge 'Writing to USB Disk' 10 70 0"
+    else
+        DD_CMD="dd bs=4M if=$ISO_FILE of=$DISK status=progress"
+    fi
 
     echo; echo "-- WARNING: about to overwrite disk $DISK:"
     echo "-- CMD='$DD_CMD'"
     read -p "Press <enter> to continue"
 
-    sudo ~/scripts/time.py $DD_CMD
+    if [ $USE_PV -ne 0 ]; then
+        START=SECONDS
+        eval $DD_CMD
+	let TOOK=SECONDS-START
+	reset
+	echo "Took $TOOK seconds"
+    else
+        sudo ~/scripts/time.py $DD_CMD
+    fi
+    #~/scripts/time.py eval $DD_CMD
     # sudo dd ibs=1k if=~/debian-trixie-iso/debian-trixie-unattended.iso of=/dev/sdb
 }
 
